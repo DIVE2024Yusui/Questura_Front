@@ -73,20 +73,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
-      {/* 프로필 화면 */}
-      <Tabs.Screen
-        name="profile/index"
-        options={{
-          title: "프로필",
-          tabBarIcon: ({ focused, color }) => (
-            <Image
-              source={focused ? profileIcon : nonProfileIcon}
-              style={{ width: 24, height: 24 }}
-            />
-          ),
-        }}
-      />
     </Tabs>
   );
 }

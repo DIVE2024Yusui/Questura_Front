@@ -1,16 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
-  Button,
   ScrollView,
   StyleSheet,
   Text,
-  Alert,
   Image,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker"; // 이미지 선택 라이브러리
-import ProfileInput from "./components/ProfileInput";
 
 export default function ProfilePage() {
   const [nickname, setNickname] = useState<string>("");
@@ -20,6 +21,7 @@ export default function ProfilePage() {
   const [nationality, setNationality] = useState<string>("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [errors, setErrors] = useState<any>({});
+  const [isDisabled, setIsDisabled] = useState<boolean>(true);
   const router = useRouter();
 
   // 유효성 검사 함수
@@ -49,9 +51,24 @@ export default function ProfilePage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // 입력 값이 바뀔 때마다 버튼 활성화 상태 확인
+  useEffect(() => {
+    if (
+      nickname &&
+      email &&
+      password &&
+      confirmPassword &&
+      nationality &&
+      profileImage
+    ) {
+      setIsDisabled(false);
+    } else {
+      setIsDisabled(true);
+    }
+  }, [nickname, email, password, confirmPassword, nationality, profileImage]);
+
   const handleNext = () => {
     if (validateInputs()) {
-      // 프로필 정보를 MBTI 페이지로 전달
       router.push({
         pathname: "/signUp/mbti",
         params: { nickname, email, password, nationality, profileImage },
@@ -73,75 +90,202 @@ export default function ProfilePage() {
   };
 
   return (
-    <ScrollView>
-      <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"} // 키보드가 올라오면 화면이 올라가도록 설정
+      keyboardVerticalOffset={80} // iOS에서 키보드가 겹치는 문제를 피하기 위해 설정
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={styles.header}>프로필 입력</Text>
-        <ProfileInput
-          nickname={nickname}
-          setNickname={setNickname}
-          email={email}
-          setEmail={setEmail}
-          password={password}
-          setPassword={setPassword}
-          confirmPassword={confirmPassword}
-          setConfirmPassword={setConfirmPassword}
-          nationality={nationality}
-          setNationality={setNationality}
-        />
-        {errors.nickname && <Text style={styles.error}>{errors.nickname}</Text>}
-        {errors.email && <Text style={styles.error}>{errors.email}</Text>}
-        {errors.password && <Text style={styles.error}>{errors.password}</Text>}
-        {errors.confirmPassword && (
-          <Text style={styles.error}>{errors.confirmPassword}</Text>
-        )}
-        {errors.nationality && (
-          <Text style={styles.error}>{errors.nationality}</Text>
-        )}
+        <Text style={styles.subHeader}>사용자님의 정보를 입력해 주세요</Text>
 
         <View style={styles.imagePickerContainer}>
-          <Text style={styles.label}>프로필 사진</Text>
-          <Button title="사진 선택" onPress={pickImage} />
-          {profileImage && (
-            <Image source={{ uri: profileImage }} style={styles.image} />
+          <TouchableOpacity onPress={pickImage}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.image} />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Text style={styles.imagePlaceholderText}>사진 추가</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          {errors.profileImage && (
+            <Text style={styles.error}>{errors.profileImage}</Text>
           )}
         </View>
-        {errors.profileImage && (
-          <Text style={styles.error}>{errors.profileImage}</Text>
-        )}
 
-        <Button title="다음" onPress={handleNext} color="#4CAF50" />
-      </View>
-    </ScrollView>
+        {/* 닉네임 입력 필드 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>닉네임</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="닉네임을 입력해 주세요"
+            value={nickname}
+            onChangeText={setNickname}
+          />
+          {errors.nickname && (
+            <Text style={styles.error}>{errors.nickname}</Text>
+          )}
+        </View>
+
+        {/* 이메일 입력 필드 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>이메일</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="이메일을 입력해 주세요"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+          />
+          {errors.email && <Text style={styles.error}>{errors.email}</Text>}
+        </View>
+
+        {/* 국적 입력 필드 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>국적</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="국적을 입력해 주세요"
+            value={nationality}
+            onChangeText={setNationality}
+          />
+          {errors.nationality && (
+            <Text style={styles.error}>{errors.nationality}</Text>
+          )}
+        </View>
+
+        {/* 비밀번호 입력 필드 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>비밀번호</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="비밀번호를 입력해 주세요"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          {errors.password && (
+            <Text style={styles.error}>{errors.password}</Text>
+          )}
+        </View>
+
+        {/* 비밀번호 확인 입력 필드 */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>비밀번호 확인</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="비밀번호를 다시 입력해 주세요"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+          />
+          {errors.confirmPassword && (
+            <Text style={styles.error}>{errors.confirmPassword}</Text>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* 제출 버튼을 하단에 배치 */}
+      <TouchableOpacity
+        style={[
+          styles.submitButton,
+          { backgroundColor: isDisabled ? "#E3E5EB" : "#2B2B2B" },
+        ]}
+        onPress={handleNext}
+        disabled={isDisabled} // 조건에 따라 버튼을 비활성화
+      >
+        <Text style={styles.submitButtonText}>제출하기</Text>
+      </TouchableOpacity>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    backgroundColor: "#f5f5f5",
     flex: 1,
+    backgroundColor: "#fff",
+  },
+  scrollContainer: {
+    padding: 20,
+    alignItems: "center",
   },
   header: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
-    textAlign: "center",
-    marginVertical: 20,
+    color: "#000",
+    marginBottom: 5,
+    marginTop: 50,
+    textAlign: "left",
+    alignSelf: "flex-start",
+    fontFamily: "Pretendard-Medium", // Pretendard 폰트 적용
+  },
+  subHeader: {
+    fontSize: 14,
+    color: "#8A8A8A",
+    marginBottom: 20,
+    textAlign: "left",
+    alignSelf: "flex-start",
+    fontFamily: "Pretendard-Medium", // Pretendard 폰트 적용
   },
   imagePickerContainer: {
-    marginVertical: 20,
+    alignItems: "center",
+    marginBottom: 20,
   },
-  label: {
-    fontSize: 16,
-    marginBottom: 5,
+  imagePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#EAEAEA",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imagePlaceholderText: {
+    color: "#8A8A8A",
+    fontFamily: "Pretendard-Medium", // Pretendard 폰트 적용
   },
   image: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginTop: 10,
+  },
+  inputContainer: {
+    width: "100%",
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 14,
+    color: "#000",
+    marginBottom: 5,
+    fontFamily: "Pretendard-Medium", // Pretendard 폰트 적용
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#D6D6D6", // 테두리 색상 변경
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 16, // 높이를 약간 늘리기 위해 패딩 증가
+    fontSize: 16,
+    width: "100%",
+    fontFamily: "Pretendard-Medium", // Pretendard 폰트 적용
   },
   error: {
     color: "red",
-    marginBottom: 10,
+    fontSize: 12,
+    marginTop: 5,
+    fontFamily: "Pretendard-Medium", // Pretendard 폰트 적용
+  },
+  submitButton: {
+    paddingVertical: 20,
+    alignItems: "center",
+    width: "100%",
+    position: "absolute",
+    bottom: 30,
+  },
+  submitButtonText: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "bold",
+    fontFamily: "Pretendard-Medium", // Pretendard 폰트 적용
   },
 });

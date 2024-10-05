@@ -15,15 +15,23 @@ import { firestore } from "./firebase"; // Firebase 설정 파일
 // 그룹 생성 함수
 export const createGroup = async (user: { id: string; mbti: string }) => {
   try {
+    // user 객체에 id와 mbti가 정의되어 있는지 확인
+    if (!user || !user.id || !user.mbti) {
+      throw new Error(
+        "Invalid user data. Both 'id' and 'mbti' must be defined."
+      );
+    }
+
     const newGroup = {
       roomCode: generateRoomCode(),
       members: [user], // 그룹 생성자를 바로 멤버로 포함
       maxMembers: 6,
     };
+
     const docRef = await addDoc(collection(firestore, "groups"), newGroup);
     return newGroup.roomCode;
   } catch (error) {
-    console.error("Error creating group: ", error);
+    console.error("Error creating group: ", error.message || error);
     throw error;
   }
 };

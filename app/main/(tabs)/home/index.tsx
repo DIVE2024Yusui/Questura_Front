@@ -12,12 +12,14 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { joinPartyQueue, createGroup, joinGroup } from "../../../api/groupApi"; // groupApi.ts에서 제공하는 함수
+import { auth } from "@/app/api/firebase";
 
 // 이미지 import
 import yesCheck from "../../../../assets/images/yesCheck.png";
 import noCheck from "../../../../assets/images/noCheck.png";
 import { getCurrentUserUid } from "@/app/api/auth";
 import { getUserProfile } from "@/app/api/firestore";
+import avatar from "../../../../assets/images/avatar.png"; // 추가된 아바타 이미지 import
 
 // 사용자 ID 생성 함수
 const generateUserId = () => {
@@ -51,12 +53,23 @@ export default function GroupTogglePage() {
   // 그룹 생성 함수
   const handleCreateGroup = async () => {
     try {
-      // 예시: 사용자의 정보를 Firebase 또는 다른 저장소에서 불러오기
-      const user = await getUserProfile(); // getUserProfile 함수를 통해 사용자 정보 불러오기
+      // Firebase Auth에서 현재 로그인된 사용자 가져오기
+      const currentUser = auth.currentUser;
+
+      if (!currentUser) {
+        throw new Error("로그인된 사용자가 없습니다.");
+      }
+
+      // 사용자의 추가 정보를 getUserProfile() 함수에서 불러오기
+      const userProfile = await getUserProfile(currentUser.uid); // 사용자의 uid를 기반으로 추가 정보를 불러오기
+
+      // 그룹 생성
       const generatedCode = await createGroup({
-        id: user.uid,
-        mbti: user.mbtiResult,
-      }); // 사용자 정보를 넘겨 그룹 생성
+        id: currentUser.uid, // Firebase Auth에서 가져온 uid
+        mbti: userProfile.mbtiResult, // 사용자 프로필에서 mbti 값 가져오기
+      });
+
+      // 성공 메시지 및 그룹 참가 상태 변경
       Alert.alert("그룹 생성 완료", `그룹 코드: ${generatedCode}`);
       setInGroup(true); // 그룹 참가 상태로 변경
       router.replace(`/group/waiting?roomCode=${generatedCode}`); // 그룹 대기 페이지로 이동
@@ -81,79 +94,45 @@ export default function GroupTogglePage() {
 
   return (
     <View style={styles.container}>
-      {/* 그룹 매칭 토글 버튼 */}
-      <View style={{ marginTop: 50 }} />
-      <View style={styles.toggleContainer}>
-        <Text style={styles.toggleText}>그룹 매칭</Text>
-        <Switch
-          trackColor={{ false: "#767577", true: "#4CAF50" }}
-          thumbColor={isGroupMatched ? "#f4f3f4" : "#f4f3f4"}
-          ios_backgroundColor="#3e3e3e"
-          onValueChange={toggleSwitch}
-          value={isGroupMatched}
-        />
-      </View>
-
-      {/* 그룹 매칭이 활성화되면 퀘스트 달성 화면 표시 */}
-      {isGroupMatched ? (
-        <View style={styles.questContainer}>
-          <Text style={styles.title}>퀘스트 달성 개수</Text>
-
-          <View style={styles.checkContainer}>
-            <View style={styles.checkItem}>
-              <Image source={yesCheck} style={styles.checkIcon} />
-            </View>
-            <View style={styles.checkItem}>
-              <Image source={noCheck} style={styles.checkIcon} />
-            </View>
-            <View style={styles.checkItem}>
-              <Image source={noCheck} style={styles.checkIcon} />
-            </View>
+      <View style={styles.questContainer}>
+        <Image source={avatar} style={styles.avatar} />
+        <View style={styles.checkContainer}>
+          <View style={styles.checkItem}>
+            <Image source={yesCheck} style={styles.checkIcon} />
           </View>
-
-          <View style={styles.questItem}>
-            <Text style={styles.questText}>🎬 영화 보기</Text>
-            <Text style={styles.questStatus}>인증하기</Text>
+          <View style={styles.checkItem}>
+            <Image source={noCheck} style={styles.checkIcon} />
           </View>
-
-          <View style={styles.questItem}>
-            <Text style={styles.questText}>🍗 치킨 시키기</Text>
-            <Text style={styles.questStatus}>인증하기</Text>
+          <View style={styles.checkItem}>
+            <Image source={noCheck} style={styles.checkIcon} />
           </View>
-
-          <View style={styles.completedQuestItem}>
-            <Text style={styles.questText}>🎬 영화 보기</Text>
-            <View style={styles.completedBadge}>
-              <Text style={styles.completedText}>달성</Text>
-            </View>
-          </View>
-
-          {/* 채팅하기 버튼 */}
-          <TouchableOpacity
-            style={styles.chatButton}
-            onPress={() => Alert.alert("채팅 화면으로 이동합니다.")}
-          >
-            <Text style={styles.chatText}>🔥 채팅하기</Text>
-          </TouchableOpacity>
         </View>
-      ) : (
-        <>
-          {/* 그룹 매칭이 비활성화된 경우 */}
-          <Text style={styles.notMatchedText}>
-            그룹 매칭이 활성화되지 않았습니다.
-          </Text>
-          {/* 그룹 생성 및 참가 옵션 */}
-          <Button title="파티 큐에 참가" onPress={handleJoinQueue} />
-          <Button title="새 그룹 생성" onPress={handleCreateGroup} />
-          <TextInput
-            style={styles.input}
-            placeholder="방 코드 입력"
-            value={roomCode}
-            onChangeText={setRoomCode}
-          />
-          <Button title="그룹 참가" onPress={handleJoinGroup} />
-        </>
-      )}
+
+        <View style={styles.questItem}>
+          <Text style={styles.questText}>⭐️ 야경 보기</Text>
+          <Text style={styles.questStatus}>인증하기</Text>
+        </View>
+
+        <View style={styles.questItem}>
+          <Text style={styles.questText}>🍗 치킨 먹기</Text>
+          <Text style={styles.questStatus}>인증하기</Text>
+        </View>
+
+        <View style={styles.completedQuestItem}>
+          <Text style={styles.questText}>🔥 찜질방 가기</Text>
+          <View style={styles.completedBadge}>
+            <Text style={styles.completedText}>달성</Text>
+          </View>
+        </View>
+
+        {/* 채팅하기 버튼 */}
+        <TouchableOpacity
+          style={styles.chatButton}
+          onPress={() => Alert.alert("채팅 화면으로 이동합니다.")}
+        >
+          <Text style={styles.chatText}>🔥 채팅하기</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -162,10 +141,17 @@ export default function GroupTogglePage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F7FA",
+    backgroundColor: "#ffffff",
     justifyContent: "flex-start",
     alignItems: "center",
     padding: 20,
+  },
+  avatar: {
+    width: 225, // 이미지 크기 설정
+    height: 280,
+    marginBottom: 20, // 간격 추가
+    marginHorizontal: "auto",
+    marginTop: 70,
   },
   toggleContainer: {
     flexDirection: "row",
@@ -213,10 +199,12 @@ const styles = StyleSheet.create({
   },
   questText: {
     fontFamily: "PretendardMedium",
+    fontSize: 18,
   },
   questStatus: {
     color: "#BDBDBD",
     fontFamily: "PretendardRegular",
+    fontSize: 15,
   },
   completedQuestItem: {
     flexDirection: "row",
